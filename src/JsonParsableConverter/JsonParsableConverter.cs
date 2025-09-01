@@ -112,4 +112,46 @@ public class JsonParsableConverter<T> : JsonConverter<T> where T : IParsable<T>
     {
         return typeof(T).IsAssignableFrom(typeToConvert);
     }
+
+    /// <summary>
+    /// Reads a dictionary key from JSON property name.
+    /// </summary>
+    /// <param name="reader">The reader to read from.</param>
+    /// <param name="typeToConvert">The type to convert.</param>
+    /// <param name="options">The serializer options.</param>
+    /// <returns>The converted value.</returns>
+    /// <exception cref="JsonException">Thrown when the property name cannot be parsed as type <typeparamref name="T"/>.</exception>
+    public override T ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var stringValue = reader.GetString();
+        if (stringValue == null)
+        {
+            throw new JsonException($"Cannot read null as property name for type {typeof(T).Name}.");
+        }
+
+        try
+        {
+            return T.Parse(stringValue, provider: null);
+        }
+        catch (Exception ex) when (ex is not JsonException)
+        {
+            throw new JsonException($"Failed to parse property name '{stringValue}' as {typeof(T).Name}.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Writes a dictionary key as JSON property name.
+    /// </summary>
+    /// <param name="writer">The writer to write to.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="options">The serializer options.</param>
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    {
+        if (value == null)
+        {
+            throw new ArgumentNullException(nameof(value), $"Cannot write null as property name for type {typeof(T).Name}.");
+        }
+
+        writer.WritePropertyName(value.ToString() ?? string.Empty);
+    }
 }
